@@ -1,30 +1,29 @@
+import {service} from '@loopback/core';
 import {
   Count,
   CountSchema,
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
-  post,
-  param,
-  get,
-  getModelSchemaRef,
-  patch,
-  put,
-  del,
-  requestBody,
-  response,
+  del, get,
+  getModelSchemaRef, param, patch, post, put, requestBody,
+  response
 } from '@loopback/rest';
 import {User} from '../models';
 import {UserRepository} from '../repositories';
+import {AuthenticationService} from '../services';
+const fetch = import('node-fetch');
 
 export class UserController {
   constructor(
     @repository(UserRepository)
-    public userRepository : UserRepository,
-  ) {}
+    public userRepository: UserRepository,
+    @service(AuthenticationService)
+    public authenticationService: AuthenticationService
+  ) { }
 
   @post('/users')
   @response(200, {
@@ -44,7 +43,22 @@ export class UserController {
     })
     user: Omit<User, 'id'>,
   ): Promise<User> {
-    return this.userRepository.create(user);
+    let password = this.authenticationService.GeneratePassword();
+    let encryptedPassword = this.authenticationService.EncryptPassword(password);
+    user.password = encryptedPassword;
+    let u = await this.userRepository.create(user);
+
+    // TODO: Notify the user
+    let destination = user.email;
+    let subject = 'Registro en la plataforma';
+    let content = 'Hola ${user.name}, su nombre de usuario es: ${user.email} y su contraseña es: ${user.password}';
+    /*
+    fetch('http://127.0.0.1:5000/envio-correo?correo_destino=${destination}&asunto=${subject}&contenido=${content}')
+      .then((data: any) => {
+        console.log(data);
+      })
+      */
+    return u;
   }
 
   @get('/users/count')
