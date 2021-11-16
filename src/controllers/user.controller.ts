@@ -15,7 +15,7 @@ import {
 import {User} from '../models';
 import {UserRepository} from '../repositories';
 import {AuthenticationService} from '../services';
-const fetch = import('node-fetch');
+const fetch = require('node-fetch');
 
 export class UserController {
   constructor(
