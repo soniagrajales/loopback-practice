@@ -9,12 +9,15 @@ import {
 } from '@loopback/repository';
 import {
   del, get,
-  getModelSchemaRef, param, patch, post, put, requestBody,
+  getModelSchemaRef, HttpErrors, param, patch, post, put, requestBody,
   response
 } from '@loopback/rest';
 import {User} from '../models';
+import {Credentials} from '../models/credentials.model';
 import {UserRepository} from '../repositories';
 import {AuthenticationService} from '../services';
+
+
 const fetch = require('node-fetch');
 
 export class UserController {
@@ -24,6 +27,33 @@ export class UserController {
     @service(AuthenticationService)
     public authenticationService: AuthenticationService
   ) { }
+
+  @post("/identifyUser", {
+    responses: {
+      '200': {
+        description: "Identificación de usuarios"
+      }
+    }
+  })
+  async identifyUser(
+    @requestBody() credentials: Credentials
+  ) {
+    let u = await this.authenticationService.IdentifyUser(credentials.user, credentials.password);
+    if (u) {
+      let token = this.authenticationService.GenerateTokenJWT(u);
+      return {
+        data: {
+          name: u.name,
+          email: u.email,
+          id: u.id
+        },
+        tk: token
+      }
+    } else {
+      throw new HttpErrors[401]("Datos inválidos");
+    }
+  }
+
 
   @post('/users')
   @response(200, {
@@ -36,7 +66,7 @@ export class UserController {
         'application/json': {
           schema: getModelSchemaRef(User, {
             title: 'NewUser',
-            exclude: ['id'],
+            exclude: ['id']
           }),
         },
       },
@@ -49,11 +79,13 @@ export class UserController {
     let u = await this.userRepository.create(user);
 
     // TODO: Notify the user
-    let destination = user.email;
-    let subject = 'Registro en la plataforma';
-    let content = 'Hola ${user.name}, su nombre de usuario es: ${user.email} y su contraseña es: ${user.password}';
     /*
-    fetch('http://127.0.0.1:5000/envio-correo?correo_destino=${destination}&asunto=${subject}&contenido=${content}')
+    let destination = u.email;
+    let subject = 'Registro en la plataforma';
+    let content = 'Hola ${u.name}, su nombre de usuario es: ${u.email} y su contraseña es: ${u.password}';
+    */
+    /*
+    fetch('http://${Keys.notificationsServiceURL}/envio-correo?correo_destino=${destination}&asunto=${subject}&contenido=${content}')
       .then((data: any) => {
         console.log(data);
       })
