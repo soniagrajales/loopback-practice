@@ -4,3 +4,4 @@ export * from './user.model';
 export * from './vehicle-request.model';
 export * from './vehicle.model';
 
+export * from './credentials.model';
